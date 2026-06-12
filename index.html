@@ -17,6 +17,9 @@
     <style>
         /* Garante que o Leaflet não cubra elementos de interface importantes */
         #map { width: 100%; height: 100%; z-index: 10; }
+        #painel-streetview { min-width: 0; }
+        #painel-mapa { width: clamp(520px, 34vw, 760px); flex: 0 0 clamp(520px, 34vw, 760px); }
+        #main-game.modo-resultado #painel-mapa { width: 100%; flex: 1 1 auto; }
         .leaflet-bar { border: none !important; }
     </style>
 </head>

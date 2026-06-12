@@ -75,6 +75,7 @@ function atualizarPlacarTotal() {
 atualizarPlacarTotal();
 
 function restaurarInterfaceCompleta() {
+    document.getElementById('main-game').classList.remove('modo-resultado');
     document.getElementById('header-jogo').classList.add('hidden');
     document.getElementById('header-jogo').classList.remove('flex');
     document.getElementById('barra-tempo-wrapper').classList.remove('hidden');
@@ -82,20 +83,24 @@ function restaurarInterfaceCompleta() {
     document.getElementById('painel-streetview').classList.add('flex-1');
     document.getElementById('painel-status').classList.remove('hidden');
     document.getElementById('painel-mapa').classList.remove('w-full', 'border-l-0');
-    document.getElementById('painel-mapa').classList.add('w-[420px]', 'border-l', 'flex', 'flex-col');
+    document.getElementById('painel-mapa').classList.add('border-l', 'flex', 'flex-col');
     document.getElementById('barra-acao').classList.remove('hidden');
+
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
 }
 
 function ativarModoMapaResultado() {
+    document.getElementById('main-game').classList.add('modo-resultado');
     document.getElementById('header-jogo').classList.remove('hidden');
     document.getElementById('header-jogo').classList.add('flex');
     document.getElementById('barra-tempo-wrapper').classList.add('hidden');
     document.getElementById('painel-streetview').classList.add('hidden');
     document.getElementById('painel-status').classList.add('hidden');
-    document.getElementById('painel-mapa').classList.remove('w-[420px]', 'border-l');
+    document.getElementById('painel-mapa').classList.remove('border-l');
     document.getElementById('painel-mapa').classList.add('w-full', 'border-l-0');
     document.getElementById('barra-acao').classList.add('hidden');
-    setTimeout(() => map.invalidateSize(), 50);
+
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
 }
 
 function voltarAoInicio() {
@@ -192,6 +197,8 @@ function mostrarRegiaoDoDia() {
     const popupRegiao = document.getElementById('tela-regiao');
     popupRegiao.classList.remove('hidden');
     popupRegiao.classList.add('flex');
+
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
 }
 
 // Passo 2: Executado ao clicar em "Vamos lá!" no popup da região
@@ -201,6 +208,8 @@ function comecarPartida() {
     document.getElementById('tela-inicio').classList.add('opacity-0', 'pointer-events-none');
     
     iniciarNovaRodada();
+
+    setTimeout(() => map.invalidateSize({ animate: false }), 100);
 }
 
 // =========================================================================
@@ -241,6 +250,7 @@ function iniciarNovaRodada() {
 
     // Reseta o mapa para o zoom inicial do Brasil
     map.setView([-14.2350, -51.9253], 5);
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
 
     // Configura e inicia o cronômetro de 2 minutos
     clearInterval(intervaloCronometro);
