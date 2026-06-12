@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrasilGuessr</title>
+    
+    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- CSS do Leaflet para renderizar o mapa corretamente -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Ícones Lucide para os botões e painéis -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Garante que o Leaflet não cubra elementos de interface importantes */
+        #map { width: 100%; height: 100%; z-index: 10; }
+        .leaflet-bar { border: none !important; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans overflow-hidden h-screen w-screen selection:bg-emerald-500/30">
+
+    <!-- ========================================== -->
+    <!-- HEADER DO MODO DE RESULTADO                -->
+    <!-- ========================================== -->
+    <header id="header-jogo" class="fixed inset-x-0 top-0 z-[70] hidden items-center justify-between border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur">
+        <div>
+            <p class="text-xs font-bold uppercase tracking-[0.3em] text-emerald-400">BrasilGuessr</p>
+            <h2 class="text-lg font-black text-white">Modo resultado</h2>
+        </div>
+        <button id="btn-voltar-inicio-header" type="button" class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800">
+            Voltar ao início
+        </button>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- 1. TELA DE INÍCIO                          -->
+    <!-- ========================================== -->
+    <div id="tela-inicio" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4 transition-all duration-500">
+        <div class="text-center max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
+            <div class="flex justify-center mb-4 text-emerald-500">
+                <i data-lucide="map-pin" class="w-16 h-16 animate-bounce"></i>
+            </div>
+            <h1 class="text-5xl font-black tracking-tight mb-2 bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+                BrasilGuessr
+            </h1>
+            <p class="text-slate-400 mb-8 text-sm uppercase tracking-wider font-semibold">O jogo de adivinhação geográfica do Brasil</p>
+            
+            <!-- Caixa de Instruções -->
+            <div class="bg-slate-800/50 p-4 rounded-xl mb-8 text-left text-sm border border-slate-700/50">
+                <h3 class="font-bold text-slate-300 mb-2 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i> Regras do Jogo:
+                </h3>
+                <ul class="space-y-1 text-slate-400">
+                    <li>• Explore a imagem em 360° do lado esquerdo.</li>
+                    <li>• Dê o seu palpite clicando no mapa da direita.</li>
+                    <li>• Você tem um limite estrito de <b>2 minutos</b>!</li>
+                </ul>
+            </div>
+
+            <!-- Botão Iniciar -->
+            <button onclick="mostrarRegiaoDoDia()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-[0.99] text-white font-bold py-4 px-6 rounded-xl transition shadow-lg shadow-emerald-900/30 text-lg flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-5 h-5"></i> Iniciar Jogo
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. POPUP DA REGIÃO DO DIA                  -->
+    <!-- ========================================== -->
+    <div id="tela-regiao" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex-col items-center justify-center z-50 p-4">
+        <div class="text-center bg-slate-900 border border-slate-800 p-8 rounded-2xl max-w-sm shadow-2xl transform scale-100 transition-transform duration-300">
+            <span class="text-xs uppercase tracking-widest text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Sorteio de Região</span>
+            <h2 class="text-xl font-medium text-slate-400 mt-4 mb-1">A região escolhida hoje é:</h2>
+            <!-- Este texto é preenchido dinamicamente pelo JavaScript -->
+            <h3 id="nome-regiao" class="text-4xl font-black text-white mb-6 uppercase tracking-wide bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">...</h3>
+            
+            <button onclick="comecarPartida()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+                Vamos lá! <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 3. INTERFACE PRINCIPAL DO GAMEPLAY         -->
+    <!-- ========================================== -->
+    <main id="main-game" class="flex h-full w-full relative">
+        
+        <!-- Barra de Progresso Temporal Animada (Topo) -->
+        <div id="barra-tempo-wrapper" class="absolute top-0 left-0 right-0 h-1.5 bg-slate-800 z-40">
+            <div id="barra-tempo" class="h-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all duration-1000" style="width: 100%"></div>
+        </div>
+
+        <!-- LADO ESQUERDO: Visualizador do Google Street View -->
+        <div id="painel-streetview" class="flex-1 h-full bg-slate-950 relative">
+            <iframe id="sv-iframe" class="w-full h-full border-none" src=""></iframe>
+            
+            <!-- Painel Flutuante (Status, Tempo e Região) -->
+            <div id="painel-status" class="absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur border border-slate-800 p-3 rounded-xl flex items-center gap-4 shadow-xl">
+                <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <i data-lucide="timer" class="w-4 h-4 text-amber-400 animate-pulse"></i>
+                    <span id="cronometro" class="font-mono font-bold text-lg text-amber-400">02:00</span>
+                </div>
+                <div class="text-xs">
+                    <p class="text-slate-400 uppercase font-bold tracking-wider">Região Atual</p>
+                    <span id="badge-regiao" class="text-white font-black text-sm">...</span>
+                </div>
+                <div class="text-xs">
+                    <p class="text-slate-400 uppercase font-bold tracking-wider">Pontuação</p>
+                    <span id="placar-total" class="text-emerald-400 font-black text-sm">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- LADO DIREITO: Mapa de Palpites (Leaflet) -->
+        <div id="painel-mapa" class="w-[420px] h-full border-l border-slate-800 flex flex-col bg-slate-950 relative">
+            
+            <!-- Área dedicada ao mapa interativo -->
+            <div class="flex-1 relative">
+                <div id="map"></div>
+                <div id="aviso-mapa" class="pointer-events-none absolute left-1/2 top-4 z-40 hidden -translate-x-1/2 rounded-full border border-amber-400/30 bg-amber-500/95 px-4 py-2 text-sm font-bold text-slate-950 shadow-lg shadow-black/30">
+                    Essa região não é brasileira.
+                </div>
+            </div>
+
+            <!-- Botão de Ação de Baixo -->
+            <div id="barra-acao" class="p-4 bg-slate-900 border-t border-slate-800 flex flex-col gap-3 z-30">
+                <button id="btn-enviar" onclick="verificarPalpite()" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-black py-4 px-6 rounded-xl transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Palpite
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 4. MODAL DE RESULTADO                     -->
+    <!-- ========================================== -->
+    <div id="tela-resultado" class="fixed inset-0 hidden items-center justify-center z-[60] bg-black/80 backdrop-blur-md p-4">
+        <div class="w-full max-w-lg rounded-3xl border border-slate-700 bg-slate-950/95 shadow-2xl shadow-black/40 overflow-hidden">
+            <div class="h-2 bg-gradient-to-r from-emerald-500 via-amber-400 to-orange-500"></div>
+            <div class="p-8 text-center">
+                <span class="inline-flex items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">Fim da rodada</span>
+                <h2 class="mt-4 text-3xl font-black text-white">Resultado da partida</h2>
+                <p id="resultado-local" class="mt-2 text-sm text-slate-400">Local sorteado</p>
+
+                <div class="mt-8 grid gap-3 text-left sm:grid-cols-2">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Pontos da rodada</p>
+                        <p id="resultado-rodada" class="mt-2 text-3xl font-black text-amber-400">0</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Pontuação total</p>
+                        <p id="resultado-total" class="mt-2 text-3xl font-black text-emerald-400">0</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:col-span-2">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Distância do palpite</p>
+                        <p id="resultado-distancia" class="mt-2 text-2xl font-black text-white">0 km</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:col-span-2">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Diferença entre os locais</p>
+                        <p id="resultado-diferenca" class="mt-2 text-2xl font-black text-white">0 km</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <button id="btn-fechar-resultado" type="button" class="flex-1 rounded-xl bg-emerald-500 px-5 py-4 font-black text-white transition hover:bg-emerald-600">
+                        Fechar e ver a diferença
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importação dos Scripts do Leaflet e do seu Jogo -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
